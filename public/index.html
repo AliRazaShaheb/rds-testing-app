@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RDS Database CRUD Tester</title>
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+      }
+
+      .header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+      }
+
+      .status-bar {
+        background: #f8f9fa;
+        padding: 15px 30px;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #dc3545;
+      }
+
+      .status-dot.connected {
+        background: #28a745;
+      }
+
+      .main-content {
+        padding: 30px;
+      }
+
+      .section {
+        margin-bottom: 40px;
+      }
+
+      .section-title {
+        font-size: 1.5rem;
+        margin-bottom: 20px;
+        color: #333;
+        border-bottom: 2px solid #667eea;
+        padding-bottom: 10px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #555;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .btn {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-right: 10px;
+        margin-bottom: 10px;
+      }
+
+      .btn-primary {
+        background: #667eea;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background: #5a6fd8;
+        transform: translateY(-2px);
+      }
+
+      .btn-success {
+        background: #28a745;
+        color: white;
+      }
+
+      .btn-success:hover {
+        background: #218838;
+        transform: translateY(-2px);
+      }
+
+      .btn-warning {
+        background: #ffc107;
+        color: #212529;
+      }
+
+      .btn-warning:hover {
+        background: #e0a800;
+        transform: translateY(-2px);
+      }
+
+      .btn-danger {
+        background: #dc3545;
+        color: white;
+      }
+
+      .btn-danger:hover {
+        background: #c82333;
+        transform: translateY(-2px);
+      }
+
+      .btn-secondary {
+        background: #6c757d;
+        color: white;
+      }
+
+      .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+      }
+
+      .users-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      }
+
+      .users-table th,
+      .users-table td {
+        padding: 15px;
+        text-align: left;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      .users-table th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #495057;
+      }
+
+      .users-table tr:hover {
+        background: #f8f9fa;
+      }
+
+      .action-buttons {
+        display: flex;
+        gap: 5px;
+      }
+
+      .btn-sm {
+        padding: 6px 12px;
+        font-size: 14px;
+      }
+
+      .alert {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+      }
+
+      .alert-success {
+        background: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+      }
+
+      .alert-error {
+        background: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 10px;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .stat-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+      }
+
+      .stat-number {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+      }
+
+      @media (max-width: 768px) {
+        .container {
+          margin: 10px;
+          border-radius: 10px;
+        }
+
+        .header h1 {
+          font-size: 2rem;
+        }
+
+        .main-content {
+          padding: 20px;
+        }
+
+        .action-buttons {
+          flex-direction: column;
+        }
+
+        .btn {
+          margin-right: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1><i class="fas fa-database"></i> RDS Database CRUD Tester</h1>
+        <p>
+          Test your AWS RDS database operations with this interactive interface
+        </p>
+      </div>
+
+      <div class="status-bar">
+        <div class="status-indicator">
+          <div class="status-dot" id="dbStatus"></div>
+          <span id="dbStatusText">Checking database connection...</span>
+        </div>
+        <div>
+          <button class="btn btn-secondary" onclick="checkHealth()">
+            <i class="fas fa-sync-alt"></i> Refresh Status
+          </button>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <!-- Alerts -->
+        <div class="alert alert-success" id="successAlert"></div>
+        <div class="alert alert-error" id="errorAlert"></div>
+
+        <!-- Statistics -->
+        <div class="stats">
+          <div class="stat-card">
+            <div class="stat-number" id="totalUsers">0</div>
+            <div class="stat-label">Total Users</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="avgAge">0</div>
+            <div class="stat-label">Average Age</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number" id="recentUsers">0</div>
+            <div class="stat-label">Recent Users (24h)</div>
+          </div>
+        </div>
+
+        <!-- Create User Section -->
+        <div class="section">
+          <h2 class="section-title">
+            <i class="fas fa-user-plus"></i> Create New User
+          </h2>
+          <form id="createUserForm">
+            <div class="form-group">
+              <label for="name">Name *</label>
+              <input type="text" id="name" name="name" required />
+            </div>
+            <div class="form-group">
+              <label for="email">Email *</label>
+              <input type="email" id="email" name="email" required />
+            </div>
+            <div class="form-group">
+              <label for="age">Age</label>
+              <input type="number" id="age" name="age" min="1" max="120" />
+            </div>
+            <button type="submit" class="btn btn-success">
+              <i class="fas fa-plus"></i> Create User
+            </button>
+          </form>
+        </div>
+
+        <!-- Update User Section -->
+        <div class="section">
+          <h2 class="section-title">
+            <i class="fas fa-user-edit"></i> Update User
+          </h2>
+          <form id="updateUserForm">
+            <div class="form-group">
+              <label for="updateId">User ID *</label>
+              <input type="number" id="updateId" name="id" required />
+            </div>
+            <div class="form-group">
+              <label for="updateName">Name</label>
+              <input type="text" id="updateName" name="name" />
+            </div>
+            <div class="form-group">
+              <label for="updateEmail">Email</label>
+              <input type="email" id="updateEmail" name="email" />
+            </div>
+            <div class="form-group">
+              <label for="updateAge">Age</label>
+              <input
+                type="number"
+                id="updateAge"
+                name="age"
+                min="1"
+                max="120"
+              />
+            </div>
+            <button type="submit" class="btn btn-warning">
+              <i class="fas fa-save"></i> Update User
+            </button>
+          </form>
+        </div>
+
+        <!-- Users List Section -->
+        <div class="section">
+          <h2 class="section-title">
+            <i class="fas fa-users"></i> Users List
+            <button
+              class="btn btn-primary"
+              onclick="loadUsers()"
+              style="float: right"
+            >
+              <i class="fas fa-refresh"></i> Refresh
+            </button>
+          </h2>
+
+          <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Loading users...</p>
+          </div>
+
+          <table class="users-table" id="usersTable" style="display: none">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Age</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE = "/api";
+
+      // Initialize the application
+      document.addEventListener("DOMContentLoaded", function () {
+        checkHealth();
+        loadUsers();
+      });
+
+      // Check database health
+      async function checkHealth() {
+        try {
+          const response = await fetch(`${API_BASE}/health`);
+          const data = await response.json();
+
+          const statusDot = document.getElementById("dbStatus");
+          const statusText = document.getElementById("dbStatusText");
+
+          if (data.database === "connected") {
+            statusDot.classList.add("connected");
+            statusText.textContent = "Database Connected";
+          } else {
+            statusDot.classList.remove("connected");
+            statusText.textContent = "Database Disconnected";
+          }
+        } catch (error) {
+          console.error("Health check failed:", error);
+          document.getElementById("dbStatusText").textContent =
+            "Connection Error";
+        }
+      }
+
+      // Load all users
+      async function loadUsers() {
+        const loading = document.getElementById("loading");
+        const table = document.getElementById("usersTable");
+
+        loading.style.display = "block";
+        table.style.display = "none";
+
+        try {
+          const response = await fetch(`${API_BASE}/users`);
+          const data = await response.json();
+
+          if (data.success) {
+            displayUsers(data.data);
+            updateStats(data.data);
+          } else {
+            showError("Failed to load users: " + data.message);
+          }
+        } catch (error) {
+          showError("Failed to load users: " + error.message);
+        } finally {
+          loading.style.display = "none";
+          table.style.display = "table";
+        }
+      }
+
+      // Display users in table
+      function displayUsers(users) {
+        const tbody = document.getElementById("usersTableBody");
+        tbody.innerHTML = "";
+
+        if (users.length === 0) {
+          tbody.innerHTML =
+            '<tr><td colspan="6" style="text-align: center; padding: 40px; color: #666;">No users found</td></tr>';
+          return;
+        }
+
+        users.forEach((user) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+                    <td>${user.id}</td>
+                    <td>${user.name}</td>
+                    <td>${user.email}</td>
+                    <td>${user.age || "N/A"}</td>
+                    <td>${new Date(user.created_at).toLocaleString()}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-warning btn-sm" onclick="editUser(${
+                              user.id
+                            })">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteUser(${
+                              user.id
+                            })">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+          tbody.appendChild(row);
+        });
+      }
+
+      // Update statistics
+      function updateStats(users) {
+        document.getElementById("totalUsers").textContent = users.length;
+
+        const ages = users.filter((u) => u.age).map((u) => u.age);
+        const avgAge =
+          ages.length > 0
+            ? Math.round(ages.reduce((a, b) => a + b, 0) / ages.length)
+            : 0;
+        document.getElementById("avgAge").textContent = avgAge;
+
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+        const recentUsers = users.filter(
+          (u) => new Date(u.created_at) > oneDayAgo
+        ).length;
+        document.getElementById("recentUsers").textContent = recentUsers;
+      }
+
+      // Create user form handler
+      document
+        .getElementById("createUserForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const formData = new FormData(this);
+          const userData = {
+            name: formData.get("name"),
+            email: formData.get("email"),
+            age: formData.get("age") ? parseInt(formData.get("age")) : null,
+          };
+
+          try {
+            const response = await fetch(`${API_BASE}/users`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(userData),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+              showSuccess("User created successfully!");
+              this.reset();
+              loadUsers();
+            } else {
+              showError("Failed to create user: " + data.message);
+            }
+          } catch (error) {
+            showError("Failed to create user: " + error.message);
+          }
+        });
+
+      // Update user form handler
+      document
+        .getElementById("updateUserForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+
+          const formData = new FormData(this);
+          const userId = formData.get("id");
+          const userData = {};
+
+          if (formData.get("name")) userData.name = formData.get("name");
+          if (formData.get("email")) userData.email = formData.get("email");
+          if (formData.get("age")) userData.age = parseInt(formData.get("age"));
+
+          if (Object.keys(userData).length === 0) {
+            showError("Please provide at least one field to update");
+            return;
+          }
+
+          try {
+            const response = await fetch(`${API_BASE}/users/${userId}`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(userData),
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+              showSuccess("User updated successfully!");
+              this.reset();
+              loadUsers();
+            } else {
+              showError("Failed to update user: " + data.message);
+            }
+          } catch (error) {
+            showError("Failed to update user: " + error.message);
+          }
+        });
+
+      // Edit user (populate form)
+      async function editUser(id) {
+        try {
+          const response = await fetch(`${API_BASE}/users/${id}`);
+          const data = await response.json();
+
+          if (data.success) {
+            const user = data.data;
+            document.getElementById("updateId").value = user.id;
+            document.getElementById("updateName").value = user.name;
+            document.getElementById("updateEmail").value = user.email;
+            document.getElementById("updateAge").value = user.age || "";
+
+            // Scroll to update form
+            document
+              .getElementById("updateUserForm")
+              .scrollIntoView({ behavior: "smooth" });
+          } else {
+            showError("Failed to load user: " + data.message);
+          }
+        } catch (error) {
+          showError("Failed to load user: " + error.message);
+        }
+      }
+
+      // Delete user
+      async function deleteUser(id) {
+        if (!confirm("Are you sure you want to delete this user?")) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_BASE}/users/${id}`, {
+            method: "DELETE",
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            showSuccess("User deleted successfully!");
+            loadUsers();
+          } else {
+            showError("Failed to delete user: " + data.message);
+          }
+        } catch (error) {
+          showError("Failed to delete user: " + error.message);
+        }
+      }
+
+      // Show success message
+      function showSuccess(message) {
+        const alert = document.getElementById("successAlert");
+        alert.textContent = message;
+        alert.style.display = "block";
+        setTimeout(() => (alert.style.display = "none"), 5000);
+      }
+
+      // Show error message
+      function showError(message) {
+        const alert = document.getElementById("errorAlert");
+        alert.textContent = message;
+        alert.style.display = "block";
+        setTimeout(() => (alert.style.display = "none"), 5000);
+      }
+    </script>
+  </body>
+</html>
