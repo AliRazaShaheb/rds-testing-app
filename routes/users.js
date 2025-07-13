@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { pool } = require("../config/database");
+const { upload, uploadToS3, deleteFileFromS3 } = require("../config/s3");
 
 // GET all users
 router.get("/", async (req, res) => {
@@ -100,6 +101,118 @@ router.post("/", async (req, res) => {
   }
 });
 
+// POST upload profile photo
+router.post("/:id/photo", upload.single("profilePhoto"), async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded",
+      });
+    }
+
+    // Check if user exists
+    const [existingUser] = await pool.execute(
+      "SELECT id, profile_photo_url FROM users WHERE id = ?",
+      [id]
+    );
+    if (existingUser.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Delete old photo from S3 if exists
+    if (existingUser[0].profile_photo_url) {
+      await deleteFileFromS3(existingUser[0].profile_photo_url);
+    }
+
+    // Upload new photo to S3
+    const photoUrl = await uploadToS3(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype
+    );
+
+    // Update user with new photo URL
+    await pool.execute("UPDATE users SET profile_photo_url = ? WHERE id = ?", [
+      photoUrl,
+      id,
+    ]);
+
+    // Fetch the updated user
+    const [updatedUser] = await pool.execute(
+      "SELECT * FROM users WHERE id = ?",
+      [id]
+    );
+
+    res.json({
+      success: true,
+      message: "Profile photo uploaded successfully",
+      data: updatedUser[0],
+    });
+  } catch (error) {
+    console.error("Error uploading profile photo:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to upload profile photo",
+      error: error.message,
+    });
+  }
+});
+
+// DELETE profile photo
+router.delete("/:id/photo", async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if user exists and get current photo URL
+    const [existingUser] = await pool.execute(
+      "SELECT id, profile_photo_url FROM users WHERE id = ?",
+      [id]
+    );
+    if (existingUser.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Delete photo from S3 if exists
+    if (existingUser[0].profile_photo_url) {
+      await deleteFileFromS3(existingUser[0].profile_photo_url);
+    }
+
+    // Update user to remove photo URL
+    await pool.execute(
+      "UPDATE users SET profile_photo_url = NULL WHERE id = ?",
+      [id]
+    );
+
+    // Fetch the updated user
+    const [updatedUser] = await pool.execute(
+      "SELECT * FROM users WHERE id = ?",
+      [id]
+    );
+
+    res.json({
+      success: true,
+      message: "Profile photo deleted successfully",
+      data: updatedUser[0],
+    });
+  } catch (error) {
+    console.error("Error deleting profile photo:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete profile photo",
+      error: error.message,
+    });
+  }
+});
+
 // PUT update user
 router.put("/:id", async (req, res) => {
   try {
@@ -189,9 +302,9 @@ router.delete("/:id", async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Check if user exists
+    // Check if user exists and get photo URL
     const [existingUser] = await pool.execute(
-      "SELECT id FROM users WHERE id = ?",
+      "SELECT id, profile_photo_url FROM users WHERE id = ?",
       [id]
     );
     if (existingUser.length === 0) {
@@ -199,6 +312,11 @@ router.delete("/:id", async (req, res) => {
         success: false,
         message: "User not found",
       });
+    }
+
+    // Delete profile photo from S3 if exists
+    if (existingUser[0].profile_photo_url) {
+      await deleteFileFromS3(existingUser[0].profile_photo_url);
     }
 
     await pool.execute("DELETE FROM users WHERE id = ?", [id]);
